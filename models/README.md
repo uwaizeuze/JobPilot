@@ -1,0 +1,1 @@
+Mongoose models will be added in Phase 2 (auth and database).
