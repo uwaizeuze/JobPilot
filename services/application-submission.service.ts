@@ -40,6 +40,7 @@ export class ApplicationSubmissionService {
     applicationId: string,
     options?: {
       overrideTier?: ApplyTier;
+      markAsApplied?: boolean;
     }
   ): Promise<SubmissionResult> {
     await connectToDatabase();
@@ -90,6 +91,34 @@ export class ApplicationSubmissionService {
         : job.applicationMethod === "prefill"
         ? "PREFILL_ASSISTED"
         : "MANUAL");
+
+    // Direct Mark as Applied request (e.g. from UI "Mark as Applied" button)
+    if (options?.markAsApplied) {
+      assertValidTransition(application.status, "APPLIED");
+      const fromStatus = application.status;
+      application.status = "APPLIED";
+      application.appliedDate = new Date();
+      application.statusReason = `Application submitted by candidate via ${job.sourcePlatform || "official career portal"}.`;
+      await application.save();
+
+      await ApplicationEvent.create({
+        applicationId: application._id,
+        userId,
+        fromStatus,
+        toStatus: "APPLIED",
+        reason: `Candidate marked application as applied via ${job.sourcePlatform || "official career portal"}.`,
+      });
+
+      return {
+        success: true,
+        tier,
+        status: "APPLIED",
+        message: "Application marked as APPLIED! Moved to Applied column in Tracker.",
+        appliedDate: application.appliedDate,
+        externalUrl: job.originalUrl,
+        idempotencyKey,
+      };
+    }
 
     // Tier 1: MANUAL (LinkedIn, Indeed, Naukri, manual imports)
     if (tier === "MANUAL") {

@@ -17,7 +17,17 @@ export async function POST(
       return NextResponse.json({ error: "Application ID is required" }, { status: 400 });
     }
 
-    const result = await applicationSubmissionService.submitApplication(session.userId, id);
+    let body: { markAsApplied?: boolean; overrideTier?: any } = {};
+    try {
+      body = await req.json();
+    } catch {
+      // Body empty or not JSON
+    }
+
+    const result = await applicationSubmissionService.submitApplication(session.userId, id, {
+      markAsApplied: Boolean(body?.markAsApplied),
+      overrideTier: body?.overrideTier,
+    });
 
     return NextResponse.json(result);
   } catch (err: unknown) {

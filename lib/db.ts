@@ -18,6 +18,30 @@ if (!global.mongooseCache) {
   global.mongooseCache = cached;
 }
 
+async function ensureValidIndexes(mongooseInstance: typeof mongoose) {
+  try {
+    const db = mongooseInstance.connection.db;
+    if (!db) return;
+
+    // Check agenttasks collection for legacy sparse index without partialFilterExpression
+    const collections = await db.listCollections({ name: "agenttasks" }).toArray();
+    if (collections.length > 0) {
+      const coll = db.collection("agenttasks");
+      const indexes = await coll.indexes();
+      const legacyIndex = indexes.find(
+        (i) =>
+          i.name === "userId_1_idempotencyKey_1" &&
+          !i.partialFilterExpression
+      );
+      if (legacyIndex) {
+        await coll.dropIndex("userId_1_idempotencyKey_1");
+      }
+    }
+  } catch {
+    // Non-blocking: collection or index may not exist yet
+  }
+}
+
 export async function connectToDatabase(): Promise<typeof mongoose> {
   const uri = process.env.MONGODB_URI;
 
@@ -36,7 +60,8 @@ export async function connectToDatabase(): Promise<typeof mongoose> {
       bufferCommands: false,
     };
 
-    cached.promise = mongoose.connect(uri, opts).then((mongooseInstance) => {
+    cached.promise = mongoose.connect(uri, opts).then(async (mongooseInstance) => {
+      await ensureValidIndexes(mongooseInstance);
       return mongooseInstance;
     });
   }

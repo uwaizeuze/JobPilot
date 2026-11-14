@@ -122,7 +122,7 @@ async function enqueueWithTaskRecord<T extends Record<string, unknown>>(
           userId,
           taskType: jobName,
           status: "pending",
-          idempotencyKey,
+          ...(idempotencyKey ? { idempotencyKey } : {}),
           payload: data,
           maxRetries: 3,
           retryCount: 0,

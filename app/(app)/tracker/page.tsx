@@ -151,6 +151,23 @@ export default function TrackerPage() {
     };
   }, [selectedStatus, search]);
 
+  // Auto-open application if ?id= is present in URL
+  useEffect(() => {
+    if (applications.length > 0 && typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const targetId = urlParams.get("id");
+      if (targetId) {
+        const found = applications.find(
+          (a) => String(a._id) === targetId || String(a.jobId?._id) === targetId
+        );
+        if (found) {
+          setActiveApp(found);
+          setDialogOpen(true);
+        }
+      }
+    }
+  }, [applications]);
+
   function handleOpenDetail(app: ApplicationWithJob) {
     setActiveApp(app);
     setDialogOpen(true);

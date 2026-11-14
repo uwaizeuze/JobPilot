@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" fill="none">
+  <defs>
+    <linearGradient id="apple-jp-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3B82F6" />
+      <stop offset="50%" stop-color="#2563EB" />
+      <stop offset="100%" stop-color="#1D4ED8" />
+    </linearGradient>
+    <linearGradient id="apple-jp-glow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#DBEAFE" />
+      <stop offset="100%" stop-color="#FFFFFF" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background squircle for iOS icon -->
+  <rect width="180" height="180" rx="40" fill="url(#apple-jp-grad)" />
+  <rect x="2" y="2" width="176" height="176" rx="38" stroke="#60A5FA" stroke-opacity="0.3" stroke-width="4" />
+
+  <!-- Pilot Wings -->
+  <path
+    d="M32 98 L68 90 L32 82 C45 87 45 93 32 98 Z"
+    fill="#93C5FD"
+    opacity="0.85"
+  />
+  <path
+    d="M148 98 L112 90 L148 82 C135 87 135 93 148 98 Z"
+    fill="#93C5FD"
+    opacity="0.85"
+  />
+
+  <!-- Central AI Sparkle -->
+  <path
+    d="M90 32 C90 62 97 70 126 90 C97 110 90 118 90 148 C90 118 83 110 54 90 C83 70 90 62 90 32 Z"
+    fill="url(#apple-jp-glow)"
+  />
+
+  <!-- Top-right accent sparkle -->
+  <path
+    d="M130 38 C130 48 133 51 144 57 C133 63 130 66 130 76 C130 66 127 63 116 57 C127 51 130 48 130 38 Z"
+    fill="#BFDBFE"
+    opacity="0.95"
+  />
+</svg>

@@ -164,7 +164,16 @@ export default function JobsPage() {
 
         <div className="flex flex-wrap items-center gap-2">
           <DiscoverJobsDialog onSuccess={handleRefresh} />
-          <ManualJobImportDialog onSuccess={handleRefresh} />
+          <ManualJobImportDialog
+            onSuccess={handleRefresh}
+            variant="bulk"
+            defaultTab="bulk"
+          />
+          <ManualJobImportDialog
+            onSuccess={handleRefresh}
+            variant="single"
+            defaultTab="single"
+          />
         </div>
       </div>
 

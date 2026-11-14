@@ -154,6 +154,8 @@ export class InterviewCoachService {
           prompt,
           schema: PrepPackGenerationSchema,
           apiKey: userApiKey,
+          baseUrl: preference?.aiBaseUrl,
+          model: preference?.aiModel,
         });
 
         packData = result.data;
@@ -284,6 +286,8 @@ Provide 2-3 concrete strengths, 2-3 constructive weaknesses, and an improved sam
           prompt,
           schema: RubricEvaluationSchema,
           apiKey: userApiKey,
+          baseUrl: preference?.aiBaseUrl,
+          model: preference?.aiModel,
         });
 
         rubric = result.data;

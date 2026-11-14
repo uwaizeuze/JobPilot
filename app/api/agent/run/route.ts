@@ -6,6 +6,8 @@ import { agentOrchestrationService } from "@/services/agent-orchestration.servic
 const RunPipelineSchema = z.object({
   jobId: z.string().min(1, "Job ID is required"),
   minimumMatchThreshold: z.number().min(0).max(100).optional(),
+  force: z.boolean().optional(),
+  stream: z.boolean().optional(),
 });
 
 export async function POST(req: Request) {
@@ -24,11 +26,75 @@ export async function POST(req: Request) {
       );
     }
 
+    // Server-Sent Events streaming mode for real-time live step progress
+    if (parsed.data.stream) {
+      const encoder = new TextEncoder();
+      const stream = new TransformStream();
+      const writer = stream.writable.getWriter();
+
+      const send = async (event: string, payload: unknown) => {
+        try {
+          await writer.write(
+            encoder.encode(`event: ${event}\ndata: ${JSON.stringify(payload)}\n\n`)
+          );
+        } catch {
+          // stream connection closed
+        }
+      };
+
+      (async () => {
+        try {
+          const result = await agentOrchestrationService.runJobApplicationPipeline(
+            session.userId,
+            parsed.data.jobId,
+            {
+              minimumMatchThreshold: parsed.data.minimumMatchThreshold,
+              force: parsed.data.force,
+              onStepUpdate: async (step, status, message, progress, details) => {
+                await send("step", {
+                  step,
+                  status,
+                  message,
+                  progress,
+                  details,
+                  timestamp: new Date().toISOString(),
+                });
+              },
+            }
+          );
+
+          await send("complete", {
+            success: result.status !== "failed",
+            ...result,
+          });
+        } catch (err: unknown) {
+          const rawMsg = err instanceof Error ? err.message : "Error running agent pipeline";
+          await send("error", { error: rawMsg });
+        } finally {
+          try {
+            await writer.close();
+          } catch {
+            // writer already closed
+          }
+        }
+      })();
+
+      return new Response(stream.readable, {
+        headers: {
+          "Content-Type": "text/event-stream; charset=utf-8",
+          "Cache-Control": "no-cache, no-transform",
+          Connection: "keep-alive",
+        },
+      });
+    }
+
+    // Standard synchronous JSON execution
     const result = await agentOrchestrationService.runJobApplicationPipeline(
       session.userId,
       parsed.data.jobId,
       {
         minimumMatchThreshold: parsed.data.minimumMatchThreshold,
+        force: parsed.data.force,
       }
     );
 
@@ -37,7 +103,11 @@ export async function POST(req: Request) {
       ...result,
     });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Error running agent pipeline";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    const rawMsg = err instanceof Error ? err.message : "Error running agent pipeline";
+    let userMsg = rawMsg;
+    if (rawMsg.includes("E11000 duplicate key")) {
+      userMsg = "A workflow task is already registered for this job. Please try running again.";
+    }
+    return NextResponse.json({ error: userMsg }, { status: 500 });
   }
 }

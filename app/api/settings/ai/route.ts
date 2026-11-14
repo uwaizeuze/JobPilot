@@ -9,6 +9,9 @@ import { UserPreference } from "@/models/preference";
 
 const UpdateAISettingsSchema = z.object({
   apiKey: z.string().optional(),
+  provider: z.enum(["deploy", "openai", "custom"]).optional(),
+  baseUrl: z.string().optional(),
+  model: z.string().optional(),
   monthlyTokenBudget: z.number().min(1000).max(5000000).optional(),
   maxApplicationsPerDay: z.number().min(1).max(50).optional(),
   allowedModels: z.array(z.string()).optional(),
@@ -27,7 +30,11 @@ export async function GET() {
 
     const preference = await UserPreference.findOne({ userId: session.userId });
 
-    const isServerKeySet = Boolean(process.env.OPENAI_API_KEY?.startsWith("sk-"));
+    const isServerKeySet = Boolean(
+      process.env.DEPLOY_API_KEY ||
+        process.env.OPENAI_API_KEY ||
+        process.env.AI_API_KEY
+    );
     const isUserKeySet = Boolean(preference?.keyLastFour);
     const isConfigured = isUserKeySet || isServerKeySet;
 
@@ -35,10 +42,25 @@ export async function GET() {
       isConfigured,
       keyLastFour: preference?.keyLastFour || (isServerKeySet ? "env" : ""),
       isUserKey: isUserKeySet,
+      provider: preference?.aiProvider ?? "deploy",
+      baseUrl:
+        preference?.aiBaseUrl ??
+        (preference?.aiProvider === "openai"
+          ? "https://api.openai.com/v1"
+          : "https://api-cdn.deploy.com/api/v1"),
+      selectedModel:
+        preference?.aiModel ??
+        (preference?.aiProvider === "openai"
+          ? "gpt-4o-mini"
+          : "zai-org/glm-5.3-flash"),
       monthlyTokenBudget: preference?.monthlyTokenBudget ?? 200000,
       tokensUsedThisMonth: preference?.tokensUsedThisMonth ?? 0,
       maxApplicationsPerDay: preference?.maxApplicationsPerDay ?? 10,
-      allowedModels: preference?.allowedModels ?? ["gpt-4o-mini", "gpt-4o"],
+      allowedModels: preference?.allowedModels ?? [
+        "zai-org/glm-5.3-flash",
+        "gpt-4o-mini",
+        "gpt-4o",
+      ],
       consentPolicy: preference?.consentPolicy ?? "approve",
       globalPause: preference?.globalPause ?? false,
     });
@@ -72,15 +94,35 @@ export async function POST(req: Request) {
       preference = new UserPreference({ userId: session.userId });
     }
 
+    const targetProvider = parsed.data.provider || preference.aiProvider || "deploy";
+    const targetBaseUrl =
+      parsed.data.baseUrl ||
+      (targetProvider === "deploy"
+        ? "https://api-cdn.deploy.com/api/v1"
+        : targetProvider === "openai"
+        ? "https://api.openai.com/v1"
+        : preference.aiBaseUrl || "https://api-cdn.deploy.com/api/v1");
+    const targetModel =
+      parsed.data.model ||
+      (targetProvider === "deploy"
+        ? "zai-org/glm-5.3-flash"
+        : targetProvider === "openai"
+        ? "gpt-4o-mini"
+        : preference.aiModel || "zai-org/glm-5.3-flash");
+
     // Handle new API Key submission
     if (parsed.data.apiKey && parsed.data.apiKey.trim()) {
       const cleanKey = parsed.data.apiKey.trim();
 
       // Test validation call
-      const validation = await openAIProvider.validateKey(cleanKey);
+      const validation = await openAIProvider.validateKey(cleanKey, {
+        baseUrl: targetBaseUrl,
+        model: targetModel,
+        provider: targetProvider,
+      });
       if (!validation.valid) {
         return NextResponse.json(
-          { error: validation.error || "Failed to validate OpenAI API key." },
+          { error: validation.error || "Failed to validate API key with provider." },
           { status: 400 }
         );
       }
@@ -89,6 +131,16 @@ export async function POST(req: Request) {
       const encrypted = encryptApiKey(cleanKey);
       preference.encryptedApiKey = encrypted;
       preference.keyLastFour = cleanKey.slice(-4);
+    }
+
+    if (parsed.data.provider !== undefined) {
+      preference.aiProvider = parsed.data.provider;
+    }
+    if (parsed.data.baseUrl !== undefined) {
+      preference.aiBaseUrl = targetBaseUrl;
+    }
+    if (parsed.data.model !== undefined) {
+      preference.aiModel = targetModel;
     }
 
     if (parsed.data.monthlyTokenBudget !== undefined) {
@@ -118,7 +170,10 @@ export async function POST(req: Request) {
       message: "AI Agent settings updated successfully.",
       isConfigured: true,
       keyLastFour: preference.keyLastFour,
-      maskedKey: maskApiKey(`sk-...${preference.keyLastFour}`),
+      maskedKey: maskApiKey(`key-...${preference.keyLastFour}`),
+      provider: preference.aiProvider,
+      baseUrl: preference.aiBaseUrl,
+      selectedModel: preference.aiModel,
       monthlyTokenBudget: preference.monthlyTokenBudget,
       tokensUsedThisMonth: preference.tokensUsedThisMonth,
     });
@@ -147,7 +202,9 @@ export async function DELETE() {
     return NextResponse.json({
       success: true,
       message: "Custom API key removed. AI agent will use default fallback if configured.",
-      isConfigured: Boolean(process.env.OPENAI_API_KEY?.startsWith("sk-")),
+      isConfigured: Boolean(
+        process.env.DEPLOY_API_KEY || process.env.OPENAI_API_KEY
+      ),
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Error removing API key";

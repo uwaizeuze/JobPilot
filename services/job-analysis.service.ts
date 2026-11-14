@@ -90,6 +90,8 @@ export class JobAnalysisService {
           prompt,
           schema: JobAnalysisExtractionSchema,
           apiKey: userApiKey,
+          baseUrl: preference?.aiBaseUrl,
+          model: preference?.aiModel,
         });
 
         extraction = result.data;
@@ -145,21 +147,30 @@ export class JobAnalysisService {
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
-    // Update job record with extracted skills and required experience
+    // Update job record with extracted skills and required experience atomically
+    const updatePayload: Record<string, unknown> = {};
     if (extraction.requiredSkills.length > 0) {
-      job.requiredSkills = Array.from(
+      const mergedRequired = Array.from(
         new Set([...(job.requiredSkills || []), ...extraction.requiredSkills])
       );
+      job.requiredSkills = mergedRequired;
+      updatePayload.requiredSkills = mergedRequired;
     }
     if (extraction.optionalSkills.length > 0) {
-      job.preferredSkills = Array.from(
+      const mergedPreferred = Array.from(
         new Set([...(job.preferredSkills || []), ...extraction.optionalSkills])
       );
+      job.preferredSkills = mergedPreferred;
+      updatePayload.preferredSkills = mergedPreferred;
     }
     if (extraction.requiredExperienceYears > 0) {
       job.requiredExperience = extraction.requiredExperienceYears;
+      updatePayload.requiredExperience = extraction.requiredExperienceYears;
     }
-    await job.save();
+
+    if (Object.keys(updatePayload).length > 0) {
+      await Job.updateOne({ _id: job._id }, { $set: updatePayload });
+    }
 
     return {
       analysis: analysisDoc,

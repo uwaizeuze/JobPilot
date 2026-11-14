@@ -15,7 +15,6 @@ import {
   Sliders,
   Trash2,
 } from "lucide-react";
-import { PageShell } from "@/components/layout/page-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,6 +26,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 
 interface NotificationItem {
   _id: string;
@@ -44,6 +44,67 @@ interface NotificationPrefs {
   dailyDigest: boolean;
   highMatchThreshold: number;
   events: Record<string, boolean>;
+}
+
+function Toggle({
+  checked,
+  onChange,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className={cn(
+        "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        checked ? "bg-primary" : "bg-input"
+      )}
+    >
+      <span
+        className={cn(
+          "pointer-events-none block h-4 w-4 rounded-full bg-background shadow-lg ring-0 transition-transform",
+          checked ? "translate-x-4" : "translate-x-0"
+        )}
+      />
+    </button>
+  );
+}
+
+function getEventBorderColor(eventType: string): string {
+  switch (eventType) {
+    case "high_match_found":
+      return "border-l-4 border-l-primary";
+    case "submitted":
+      return "border-l-4 border-l-blue-500";
+    case "interview_scheduled":
+      return "border-l-4 border-l-emerald-500";
+    case "failed":
+      return "border-l-4 border-l-destructive";
+    case "follow_up_due":
+      return "border-l-4 border-l-amber-500";
+    case "integration_disconnected":
+      return "border-l-4 border-l-orange-500";
+    default:
+      return "border-l-4 border-l-muted-foreground/30";
+  }
+}
+
+function getBadgeVariant(eventType: string) {
+  switch (eventType) {
+    case "high_match_found":
+      return "default";
+    case "submitted":
+    case "interview_scheduled":
+      return "secondary";
+    case "failed":
+      return "destructive";
+    default:
+      return "outline";
+  }
 }
 
 export default function NotificationsPage() {
@@ -159,110 +220,110 @@ export default function NotificationsPage() {
     }
   }
 
-  function getBadgeVariant(eventType: string) {
-    switch (eventType) {
-      case "high_match_found":
-        return "default";
-      case "submitted":
-      case "interview_scheduled":
-        return "secondary";
-      case "failed":
-        return "destructive";
-      default:
-        return "outline";
-    }
-  }
-
   return (
-    <PageShell
-      title="Notification Center"
-      description="Stay informed about high-match opportunities, scheduled interview rounds, and autonomous agent actions."
-    >
-      {/* Tabs */}
-      <div className="flex items-center justify-between border-b pb-3">
-        <div className="flex gap-2">
-          <Button
-            variant={activeTab === "notifications" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setActiveTab("notifications")}
-            className="gap-2"
-          >
-            <Bell className="h-4 w-4" />
-            Inbox
-            {unreadCount > 0 && (
-              <Badge variant="secondary" className="ml-1 px-1.5 py-0 text-xs">
-                {unreadCount}
-              </Badge>
-            )}
-          </Button>
-          <Button
-            variant={activeTab === "preferences" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setActiveTab("preferences")}
-            className="gap-2"
-          >
-            <Sliders className="h-4 w-4" />
-            Preferences & Channels
-          </Button>
-        </div>
+    <div className="space-y-6">
+      <div className="space-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight">Notification Center</h1>
+        <p className="text-sm text-muted-foreground">
+          Stay informed about high-match opportunities, scheduled interview rounds, and autonomous agent actions.
+        </p>
+      </div>
 
-        {activeTab === "notifications" && (
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setUnreadOnly(!unreadOnly)}
-              className="text-xs gap-1.5"
+      {/* Underline Tabs */}
+      <div className="border-b">
+        <div className="flex items-center justify-between">
+          <div className="flex">
+            <button
+              onClick={() => setActiveTab("notifications")}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors",
+                activeTab === "notifications"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+              )}
             >
-              <Filter className="h-3.5 w-3.5" />
-              {unreadOnly ? "Showing Unread" : "All Messages"}
-            </Button>
-            {unreadCount > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => markAsRead()}
-                className="text-xs gap-1.5"
-              >
-                <CheckCheck className="h-3.5 w-3.5" />
-                Mark all read
-              </Button>
-            )}
-            {notifications.length > 0 && (
+              <Bell className="h-4 w-4" />
+              Inbox
+              {unreadCount > 0 && (
+                <Badge variant="secondary" className="ml-1 px-1.5 py-0 text-xs">
+                  {unreadCount}
+                </Badge>
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab("preferences")}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors",
+                activeTab === "preferences"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+              )}
+            >
+              <Sliders className="h-4 w-4" />
+              Preferences &amp; Channels
+            </button>
+          </div>
+
+          {activeTab === "notifications" && (
+            <div className="flex items-center gap-2 pb-1">
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={clearAll}
-                className="text-xs text-muted-foreground hover:text-destructive gap-1.5"
+                onClick={() => setUnreadOnly(!unreadOnly)}
+                className={cn("text-xs gap-1.5", unreadOnly && "text-primary")}
               >
-                <Trash2 className="h-3.5 w-3.5" />
-                Clear
+                <Filter className="h-3.5 w-3.5" />
+                {unreadOnly ? "Showing Unread" : "All Messages"}
               </Button>
-            )}
-          </div>
-        )}
+              {unreadCount > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => markAsRead()}
+                  className="text-xs gap-1.5"
+                >
+                  <CheckCheck className="h-3.5 w-3.5" />
+                  Mark all read
+                </Button>
+              )}
+              {notifications.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearAll}
+                  className="text-xs text-muted-foreground hover:text-destructive gap-1.5"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Clear
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {activeTab === "notifications" ? (
-        <div className="space-y-3 pt-2">
+        <div className="space-y-3">
           {loading ? (
-            <div className="flex flex-col items-center justify-center p-12 text-muted-foreground">
-              <Loader2 className="h-8 w-8 animate-spin mb-2" />
+            <div className="flex flex-col items-center justify-center p-16 text-muted-foreground">
+              <Loader2 className="h-8 w-8 animate-spin mb-3" />
               <p className="text-sm">Loading notification feed...</p>
             </div>
           ) : notifications.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center p-12 text-center">
-                <BellOff className="h-10 w-10 text-muted-foreground/60 mb-3" />
-                <h3 className="text-base font-semibold">No notifications right now</h3>
-                <p className="text-sm text-muted-foreground max-w-sm mt-1">
-                  You are all caught up! High match discoveries, application submissions, and interview reminders will appear here.
+            <Card className="border-dashed">
+              <CardContent className="flex flex-col items-center justify-center p-14 text-center">
+                <div className="rounded-full bg-muted p-4 mb-4">
+                  <BellOff className="h-8 w-8 text-muted-foreground/60" />
+                </div>
+                <h3 className="text-base font-semibold">All caught up!</h3>
+                <p className="text-sm text-muted-foreground max-w-sm mt-2">
+                  High match discoveries, application submissions, and interview reminders will appear here.
                 </p>
                 <Button
                   variant="outline"
                   size="sm"
                   asChild
-                  className="mt-4 gap-1.5 text-xs"
+                  className="mt-5 gap-1.5 text-xs"
                 >
                   <Link href="/settings/jobs">
                     Inspect Background Worker Queues
@@ -273,23 +334,25 @@ export default function NotificationsPage() {
             </Card>
           ) : (
             notifications.map((item) => (
-              <Card
+              <div
                 key={item._id}
-                className={`transition-colors ${
-                  item.read ? "bg-card/60 opacity-80" : "border-primary/40 bg-card shadow-xs"
-                }`}
+                className={cn(
+                  "rounded-lg border bg-card shadow-xs transition-all",
+                  getEventBorderColor(item.eventType),
+                  item.read ? "opacity-70" : "shadow-sm"
+                )}
               >
-                <CardContent className="flex items-start justify-between gap-4 p-4">
-                  <div className="space-y-1.5">
+                <div className="flex items-start justify-between gap-4 p-4">
+                  <div className="space-y-1.5 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant={getBadgeVariant(item.eventType)} className="text-[11px] capitalize">
+                      <Badge variant={getBadgeVariant(item.eventType)} className="text-[11px] capitalize shrink-0">
                         {item.eventType.replace(/_/g, " ")}
                       </Badge>
-                      <span className="text-xs font-semibold text-foreground">
+                      <span className="text-xs font-semibold text-foreground truncate">
                         {item.title}
                       </span>
                       {!item.read && (
-                        <span className="h-2 w-2 rounded-full bg-primary" />
+                        <span className="h-2 w-2 rounded-full bg-primary shrink-0" />
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground leading-relaxed">
@@ -321,14 +384,14 @@ export default function NotificationsPage() {
                       <Check className="h-3.5 w-3.5" />
                     </Button>
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             ))
           )}
         </div>
       ) : (
         /* Preferences & Channels Tab */
-        <div className="grid gap-6 md:grid-cols-2 pt-2">
+        <div className="grid gap-6 md:grid-cols-2">
           {/* Channel Configuration */}
           <Card>
             <CardHeader className="pb-3">
@@ -337,51 +400,38 @@ export default function NotificationsPage() {
                 Select your preferred channels for system updates and scheduled summaries.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4 text-xs">
-              <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/20">
-                <div className="space-y-0.5">
-                  <div className="font-semibold text-foreground">In-App Notification Center</div>
-                  <div className="text-muted-foreground text-[11px]">
-                    Display banners and alerts in the navigation bar and inbox.
+            <CardContent className="space-y-3 text-xs">
+              {[
+                {
+                  key: "inApp" as const,
+                  label: "In-App Notification Center",
+                  desc: "Display banners and alerts in the navigation bar and inbox.",
+                },
+                {
+                  key: "email" as const,
+                  label: "Email Notifications (Resend)",
+                  desc: "Receive instant transactional emails for high matches and interviews.",
+                },
+                {
+                  key: "dailyDigest" as const,
+                  label: "Daily Pipeline Digest",
+                  desc: "Receive a 9:00 AM summary of new matches and upcoming actions.",
+                },
+              ].map(({ key, label, desc }) => (
+                <div
+                  key={key}
+                  className="flex items-center justify-between p-3 rounded-lg border bg-muted/20"
+                >
+                  <div className="space-y-0.5 pr-4">
+                    <div className="font-semibold text-foreground text-xs">{label}</div>
+                    <div className="text-muted-foreground text-[11px]">{desc}</div>
                   </div>
+                  <Toggle
+                    checked={prefs[key]}
+                    onChange={(v) => setPrefs({ ...prefs, [key]: v })}
+                  />
                 </div>
-                <input
-                  type="checkbox"
-                  checked={prefs.inApp}
-                  onChange={(e) => setPrefs({ ...prefs, inApp: e.target.checked })}
-                  className="h-4 w-4 rounded border-gray-300 text-primary"
-                />
-              </div>
-
-              <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/20">
-                <div className="space-y-0.5">
-                  <div className="font-semibold text-foreground">Email Notifications (Resend)</div>
-                  <div className="text-muted-foreground text-[11px]">
-                    Receive instant transactional emails for high matches and interviews.
-                  </div>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={prefs.email}
-                  onChange={(e) => setPrefs({ ...prefs, email: e.target.checked })}
-                  className="h-4 w-4 rounded border-gray-300 text-primary"
-                />
-              </div>
-
-              <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/20">
-                <div className="space-y-0.5">
-                  <div className="font-semibold text-foreground">Daily Pipeline Digest</div>
-                  <div className="text-muted-foreground text-[11px]">
-                    Receive a 9:00 AM summary of new matches and upcoming actions.
-                  </div>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={prefs.dailyDigest}
-                  onChange={(e) => setPrefs({ ...prefs, dailyDigest: e.target.checked })}
-                  className="h-4 w-4 rounded border-gray-300 text-primary"
-                />
-              </div>
+              ))}
 
               <div className="space-y-2 pt-2 border-t">
                 <div className="flex justify-between items-center">
@@ -422,7 +472,7 @@ export default function NotificationsPage() {
                 Fine-tune which autonomous agent and tracker events notify you.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3 text-xs">
+            <CardContent className="space-y-0 text-xs">
               {[
                 { key: "high_match_found", label: "High-Match Job Discovered", desc: "When a job matches your profile above threshold" },
                 { key: "resume_generated", label: "Tailored Resume Generated", desc: "When the agent drafts a targeted resume" },
@@ -434,26 +484,24 @@ export default function NotificationsPage() {
                 { key: "integration_disconnected", label: "Integration Disconnected", desc: "When an external ATS or job source connection fails" },
                 { key: "daily_summary", label: "Daily Summary Digest", desc: "Morning briefing of active applications" },
               ].map(({ key, label, desc }) => (
-                <div key={key} className="flex items-center justify-between py-1.5 border-b border-border/40 last:border-0">
-                  <div className="space-y-0.5">
+                <div key={key} className="flex items-center justify-between py-2.5 border-b border-border/40 last:border-0">
+                  <div className="space-y-0.5 pr-4">
                     <div className="font-medium text-foreground">{label}</div>
                     <div className="text-[11px] text-muted-foreground">{desc}</div>
                   </div>
-                  <input
-                    type="checkbox"
+                  <Toggle
                     checked={prefs.events[key] !== false}
-                    onChange={(e) =>
+                    onChange={(v) =>
                       setPrefs({
                         ...prefs,
-                        events: { ...prefs.events, [key]: e.target.checked },
+                        events: { ...prefs.events, [key]: v },
                       })
                     }
-                    className="h-4 w-4 rounded border-gray-300 text-primary shrink-0 ml-2"
                   />
                 </div>
               ))}
 
-              <div className="pt-3">
+              <div className="pt-4">
                 <Button
                   onClick={savePreferences}
                   disabled={savingPrefs}
@@ -482,6 +530,6 @@ export default function NotificationsPage() {
           </Card>
         </div>
       )}
-    </PageShell>
+    </div>
   );
 }

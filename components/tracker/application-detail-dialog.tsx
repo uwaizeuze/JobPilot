@@ -241,11 +241,45 @@ function ApplicationDetailContent({
     }
   }
 
+  async function handleMarkAsApplied() {
+    setSubmittingAction(true);
+    setError(null);
+    setSuccessMsg(null);
+    try {
+      const res = await fetch(`/api/applications/${application._id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "APPLIED",
+          statusReason: `Application submitted by candidate via ${job?.sourcePlatform || "official career portal"}.`,
+          appliedDate: new Date().toISOString(),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to mark as applied");
+      }
+
+      setSuccessMsg("Application successfully marked as APPLIED! Moved to the APPLIED column.");
+      onUpdated();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Error marking as applied";
+      setError(msg);
+    } finally {
+      setSubmittingAction(false);
+    }
+  }
+
   async function handleExecuteSubmission() {
     setSubmittingAction(true);
     setError(null);
     setSuccessMsg(null);
     try {
+      if (job?.originalUrl) {
+        window.open(job.originalUrl, "_blank", "noopener,noreferrer");
+      }
+
       const res = await fetch(`/api/applications/${application._id}/submit`, {
         method: "POST",
       });
@@ -253,7 +287,14 @@ function ApplicationDetailContent({
       if (!res.ok) {
         throw new Error(data.error || "Submission request failed");
       }
-      setSuccessMsg(data.message || "Application action processed successfully.");
+
+      if (data.tier === "MANUAL") {
+        setSuccessMsg(
+          "Official career site opened in a new tab! Once you have submitted your tailored documents, click 'Mark as Applied' below."
+        );
+      } else {
+        setSuccessMsg(data.message || "Application action processed successfully.");
+      }
       onUpdated();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Error executing submission";
@@ -532,7 +573,7 @@ function ApplicationDetailContent({
 
         {/* Tier-Gated Submission Action */}
         {(currentStatus === "READY_FOR_REVIEW" || currentStatus === "AWAITING_APPROVAL") && (
-          <div className="rounded-md border border-primary/30 bg-primary/[0.04] p-3 space-y-2 text-xs">
+          <div className="rounded-md border border-primary/30 bg-primary/[0.04] p-3.5 space-y-2.5 text-xs">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Bot className="h-4 w-4 text-primary" />
@@ -547,36 +588,71 @@ function ApplicationDetailContent({
               </Badge>
             </div>
             <p className="text-[11px] text-muted-foreground leading-relaxed">
-              Materials and eligibility have been verified. Click below to execute submission according to platform safety tiers.
+              {job?.sourcePlatform?.toLowerCase().includes("bulk") ||
+              job?.sourcePlatform?.toLowerCase().includes("linkedin") ||
+              job?.sourcePlatform?.toLowerCase().includes("indeed") ||
+              job?.sourcePlatform?.toLowerCase().includes("manual")
+                ? "Your tailored resume and cover letter are ready! To comply with platform terms, open the career website to submit your materials, then click 'Mark as Applied' to move this card to the APPLIED column."
+                : "Materials and eligibility have been verified. Click below to execute submission according to platform safety tiers."}
             </p>
-            <div className="flex items-center gap-2 pt-1">
+            <div className="flex flex-wrap items-center gap-2 pt-1">
               <Button
                 size="sm"
                 variant="default"
                 disabled={submittingAction}
-                onClick={handleExecuteSubmission}
-                className="gap-1.5 text-xs h-8"
-                id="execute-submission-btn"
+                onClick={handleMarkAsApplied}
+                className="gap-1.5 text-xs h-8 bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-sm"
+                id="mark-applied-btn"
               >
                 {submittingAction ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 ) : (
-                  <Send className="h-3.5 w-3.5" />
+                  <CheckCircle2 className="h-3.5 w-3.5" />
                 )}
-                {job?.sourcePlatform?.toLowerCase().includes("greenhouse") ||
-                job?.sourcePlatform?.toLowerCase().includes("lever")
-                  ? "Launch Assisted Prefill"
-                  : job?.applicationMethod === "auto"
-                  ? "Authorize & Submit Application"
-                  : "Prepare & Open Application Portal"}
+                ✓ Mark as Applied (Move to Applied)
               </Button>
+
               {job?.originalUrl && (
-                <a href={job.originalUrl} target="_blank" rel="noopener noreferrer">
-                  <Button variant="outline" size="sm" className="gap-1 text-xs h-8">
-                    Open Job URL
-                    <ExternalLink className="h-3 w-3" />
-                  </Button>
-                </a>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    if (job?.originalUrl) {
+                      window.open(job.originalUrl, "_blank", "noopener,noreferrer");
+                      setSuccessMsg("Career portal opened in new tab! When you have submitted, click 'Mark as Applied'.");
+                    }
+                  }}
+                  className="gap-1.5 text-xs h-8"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  Apply on Career Site ↗
+                </Button>
+              )}
+
+              {!(
+                job?.sourcePlatform?.toLowerCase().includes("bulk") ||
+                job?.sourcePlatform?.toLowerCase().includes("linkedin") ||
+                job?.sourcePlatform?.toLowerCase().includes("indeed") ||
+                job?.sourcePlatform?.toLowerCase().includes("manual")
+              ) && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={submittingAction}
+                  onClick={handleExecuteSubmission}
+                  className="gap-1.5 text-xs h-8"
+                  id="execute-submission-btn"
+                >
+                  {submittingAction ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Send className="h-3.5 w-3.5" />
+                  )}
+                  {job?.sourcePlatform?.toLowerCase().includes("greenhouse") ||
+                  job?.sourcePlatform?.toLowerCase().includes("lever")
+                    ? "Launch Assisted Prefill"
+                    : "Authorize & Submit Application"}
+                </Button>
               )}
             </div>
           </div>

@@ -11,6 +11,7 @@ export interface GenerateStructuredOptions<T> {
   systemPrompt?: string;
   schema: z.ZodType<T>;
   apiKey?: string;
+  baseUrl?: string;
   model?: string;
   maxTokens?: number;
 }
@@ -24,7 +25,10 @@ export interface StructuredGenerationResult<T> {
 export interface AIProvider {
   getProviderName(): string;
   isConfigured(apiKey?: string): boolean;
-  validateKey(apiKey: string): Promise<{ valid: boolean; error?: string }>;
+  validateKey(
+    apiKey: string,
+    options?: { baseUrl?: string; model?: string; provider?: string }
+  ): Promise<{ valid: boolean; error?: string }>;
   generateStructured<T>(
     options: GenerateStructuredOptions<T>
   ): Promise<StructuredGenerationResult<T>>;

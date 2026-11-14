@@ -54,7 +54,12 @@ const AgentTaskSchema = new Schema<IAgentTask>(
 
 AgentTaskSchema.index(
   { userId: 1, idempotencyKey: 1 },
-  { unique: true, sparse: true }
+  {
+    unique: true,
+    partialFilterExpression: {
+      idempotencyKey: { $type: "string" },
+    },
+  }
 );
 
 export const AgentTask: Model<IAgentTask> =

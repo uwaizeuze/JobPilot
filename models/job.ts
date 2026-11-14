@@ -81,6 +81,7 @@ const JobSchema = new Schema<IJob>(
   },
   {
     timestamps: true,
+    versionKey: false,
   }
 );
 

@@ -33,6 +33,9 @@ interface AISettingsData {
   isConfigured: boolean;
   keyLastFour: string;
   isUserKey: boolean;
+  provider?: "deploy" | "openai" | "custom";
+  baseUrl?: string;
+  selectedModel?: string;
   monthlyTokenBudget: number;
   tokensUsedThisMonth: number;
   maxApplicationsPerDay: number;
@@ -48,6 +51,9 @@ export default function AgentSettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  const [provider, setProvider] = useState<"deploy" | "openai" | "custom">("deploy");
+  const [baseUrl, setBaseUrl] = useState("https://api-cdn.deploy.com/api/v1");
+  const [selectedModel, setSelectedModel] = useState("zai-org/glm-5.3-flash");
   const [apiKeyInput, setApiKeyInput] = useState("");
   const [tokenBudget, setTokenBudget] = useState(200000);
   const [maxApps, setMaxApps] = useState(10);
@@ -66,6 +72,17 @@ export default function AgentSettingsPage() {
     }>
   >([]);
 
+  function handleProviderChange(newProvider: "deploy" | "openai" | "custom") {
+    setProvider(newProvider);
+    if (newProvider === "deploy") {
+      setBaseUrl("https://api-cdn.deploy.com/api/v1");
+      setSelectedModel("zai-org/glm-5.3-flash");
+    } else if (newProvider === "openai") {
+      setBaseUrl("https://api.openai.com/v1");
+      setSelectedModel("gpt-4o-mini");
+    }
+  }
+
   async function loadSettings() {
     try {
       const [aiRes, toolsRes, statusRes] = await Promise.all([
@@ -77,6 +94,9 @@ export default function AgentSettingsPage() {
       if (aiRes.ok) {
         const json: AISettingsData = await aiRes.json();
         setData(json);
+        if (json.provider) setProvider(json.provider);
+        if (json.baseUrl) setBaseUrl(json.baseUrl);
+        if (json.selectedModel) setSelectedModel(json.selectedModel);
         setTokenBudget(json.monthlyTokenBudget);
         setMaxApps(json.maxApplicationsPerDay);
         setConsentPolicy(json.consentPolicy);
@@ -116,6 +136,9 @@ export default function AgentSettingsPage() {
           const json: AISettingsData = await aiRes.json();
           if (!ignore) {
             setData(json);
+            if (json.provider) setProvider(json.provider);
+            if (json.baseUrl) setBaseUrl(json.baseUrl);
+            if (json.selectedModel) setSelectedModel(json.selectedModel);
             setTokenBudget(json.monthlyTokenBudget);
             setMaxApps(json.maxApplicationsPerDay);
             setConsentPolicy(json.consentPolicy);
@@ -169,6 +192,9 @@ export default function AgentSettingsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           apiKey: apiKeyInput.trim(),
+          provider,
+          baseUrl: baseUrl.trim(),
+          model: selectedModel.trim(),
           monthlyTokenBudget: tokenBudget,
           maxApplicationsPerDay: maxApps,
           consentPolicy,
@@ -202,6 +228,9 @@ export default function AgentSettingsPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          provider,
+          baseUrl: baseUrl.trim(),
+          model: selectedModel.trim(),
           monthlyTokenBudget: tokenBudget,
           maxApplicationsPerDay: maxApps,
           consentPolicy,
@@ -225,7 +254,7 @@ export default function AgentSettingsPage() {
   }
 
   async function handleRemoveKey() {
-    if (!confirm("Are you sure you want to remove your stored OpenAI API key?")) return;
+    if (!confirm("Are you sure you want to remove your stored API key?")) return;
 
     setSaving(true);
     setError(null);
@@ -255,7 +284,7 @@ export default function AgentSettingsPage() {
   return (
     <PageShell
       title="AI Agent & Model Settings"
-      description="Configure Bring-Your-Own-Key (BYOK) OpenAI credentials, model budgets, and safety limits."
+      description="Configure Bring-Your-Own-Key (BYOK) credentials for Z.AI GLM-5.3-Flash or OpenAI, model budgets, and safety limits."
     >
       {/* Security Banner */}
       <Card className="border-primary/20 bg-primary/5">
@@ -296,7 +325,7 @@ export default function AgentSettingsPage() {
           <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-semibold">OpenAI API Key (BYOK)</CardTitle>
+                <CardTitle className="text-base font-semibold">AI Model & API Key (BYOK)</CardTitle>
                 <Badge
                   variant={data?.isConfigured ? "default" : "outline"}
                   className="text-xs"
@@ -311,22 +340,92 @@ export default function AgentSettingsPage() {
                 </Badge>
               </div>
               <CardDescription className="text-xs">
-                Provide your OpenAI key to enable structured job analysis, tailored resumes, and mock interviews.
+                Bring your own API key for Z.AI GLM-5.3-Flash, OpenAI, or any OpenAI-compatible provider.
               </CardDescription>
             </CardHeader>
 
             <CardContent className="space-y-4 pt-2">
+              {/* Provider Selection */}
+              <div className="space-y-2">
+                <Label className="text-xs font-medium">Provider</Label>
+                <div className="grid grid-cols-3 gap-1.5">
+                  <Button
+                    type="button"
+                    variant={provider === "deploy" ? "default" : "outline"}
+                    size="sm"
+                    className="h-8 text-xs font-normal"
+                    onClick={() => handleProviderChange("deploy")}
+                  >
+                    Deploy (Z.AI)
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={provider === "openai" ? "default" : "outline"}
+                    size="sm"
+                    className="h-8 text-xs font-normal"
+                    onClick={() => handleProviderChange("openai")}
+                  >
+                    OpenAI
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={provider === "custom" ? "default" : "outline"}
+                    size="sm"
+                    className="h-8 text-xs font-normal"
+                    onClick={() => handleProviderChange("custom")}
+                  >
+                    Custom
+                  </Button>
+                </div>
+              </div>
+
+              {/* Endpoint & Model details */}
+              <div className="rounded-md border border-border/60 bg-muted/30 p-2.5 text-xs space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Model:</span>
+                  <span className="font-mono font-medium text-foreground text-[11px]">
+                    {provider === "custom" ? (
+                      <Input
+                        type="text"
+                        value={selectedModel}
+                        onChange={(e) => setSelectedModel(e.target.value)}
+                        className="h-6 text-[11px] py-0 px-1 font-mono w-44"
+                        placeholder="model-name"
+                      />
+                    ) : (
+                      selectedModel
+                    )}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Base URL:</span>
+                  <span className="font-mono text-muted-foreground text-[11px] truncate max-w-[220px]">
+                    {provider === "custom" ? (
+                      <Input
+                        type="url"
+                        value={baseUrl}
+                        onChange={(e) => setBaseUrl(e.target.value)}
+                        className="h-6 text-[11px] py-0 px-1 font-mono w-44"
+                        placeholder="https://api.../v1"
+                      />
+                    ) : (
+                      baseUrl
+                    )}
+                  </span>
+                </div>
+              </div>
+
               {data?.isUserKey ? (
                 <div className="rounded-md border border-border bg-muted/20 p-3 text-xs space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Active Encrypted Key:</span>
                     <span className="font-mono font-semibold text-foreground">
-                      sk-...{data.keyLastFour}
+                      key-...{data.keyLastFour}
                     </span>
                   </div>
                   <div className="flex items-center justify-between pt-2 border-t border-border/50">
                     <span className="text-[11px] text-muted-foreground">
-                      Tested & securely stored
+                      Provider: {data.provider === "deploy" ? "Deploy (GLM-5.3-Flash)" : data.provider === "openai" ? "OpenAI" : "Custom"}
                     </span>
                     <Button
                       variant="destructive"
@@ -344,19 +443,31 @@ export default function AgentSettingsPage() {
 
               <form onSubmit={handleSaveKey} className="space-y-3">
                 <div className="space-y-1.5">
-                  <Label htmlFor="openai-key">
-                    {data?.isUserKey ? "Replace API Key" : "Enter OpenAI API Key"}
+                  <Label htmlFor="api-key-input">
+                    {data?.isUserKey
+                      ? `Replace ${provider === "deploy" ? "Deploy" : provider === "openai" ? "OpenAI" : "API"} Key`
+                      : `Enter ${provider === "deploy" ? "Deploy" : provider === "openai" ? "OpenAI" : "API"} Key`}
                   </Label>
                   <Input
-                    id="openai-key"
+                    id="api-key-input"
                     type="password"
-                    placeholder="sk-proj-..."
+                    placeholder={
+                      provider === "deploy"
+                        ? "Enter Deploy API key..."
+                        : provider === "openai"
+                        ? "sk-proj-..."
+                        : "Enter API key..."
+                    }
                     value={apiKeyInput}
                     onChange={(e) => setApiKeyInput(e.target.value)}
                     required
                   />
                   <p className="text-[11px] text-muted-foreground">
-                    Validated with a live test call to OpenAI before saving.
+                    {provider === "deploy"
+                      ? "Validated against Deploy.com CDN with Z.AI GLM-5.3-Flash."
+                      : provider === "openai"
+                      ? "Validated with a live test call to OpenAI before saving."
+                      : "Validated with a live test call to your custom base URL."}
                   </p>
                 </div>
 

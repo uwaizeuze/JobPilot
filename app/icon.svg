@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <defs>
+    <linearGradient id="jp-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3B82F6" />
+      <stop offset="50%" stop-color="#2563EB" />
+      <stop offset="100%" stop-color="#1D4ED8" />
+    </linearGradient>
+    <linearGradient id="jp-glow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#DBEAFE" />
+      <stop offset="100%" stop-color="#FFFFFF" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background squircle -->
+  <rect width="32" height="32" rx="7.5" fill="url(#jp-grad)" />
+  <rect x="0.5" y="0.5" width="31" height="31" rx="7" stroke="#60A5FA" stroke-opacity="0.4" stroke-width="1" />
+
+  <!-- Pilot Wings / Aerodynamic sweeps -->
+  <path
+    d="M5.5 17.5 L11.5 16 L5.5 14.5 C7.8 15.5 7.8 16.5 5.5 17.5 Z"
+    fill="#93C5FD"
+    opacity="0.8"
+  />
+  <path
+    d="M26.5 17.5 L20.5 16 L26.5 14.5 C24.2 15.5 24.2 16.5 26.5 17.5 Z"
+    fill="#93C5FD"
+    opacity="0.8"
+  />
+
+  <!-- Central Star / Sparkle of AI Intelligence -->
+  <path
+    d="M16 6 C16 11.2 17.2 12.5 22 16 C17.2 19.5 16 20.8 16 26 C16 20.8 14.8 19.5 10 16 C14.8 12.5 16 11.2 16 6 Z"
+    fill="url(#jp-glow)"
+  />
+
+  <!-- Top-right accent sparkle -->
+  <path
+    d="M23 7 C23 8.8 23.6 9.4 25.5 10.5 C23.6 11.6 23 12.2 23 14 C23 12.2 22.4 11.6 20.5 10.5 C22.4 9.4 23 8.8 23 7 Z"
+    fill="#BFDBFE"
+    opacity="0.95"
+  />
+</svg>

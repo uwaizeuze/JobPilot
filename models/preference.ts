@@ -30,6 +30,9 @@ export interface IUserPreference extends Document {
   globalPause: boolean;
   encryptedApiKey?: string;
   keyLastFour?: string;
+  aiProvider?: "deploy" | "openai" | "custom";
+  aiBaseUrl?: string;
+  aiModel?: string;
   notificationPreferences?: INotificationPreferences;
   createdAt: Date;
   updatedAt: Date;
@@ -80,6 +83,19 @@ const UserPreferenceSchema = new Schema<IUserPreference>(
     keyLastFour: {
       type: String,
       default: "",
+    },
+    aiProvider: {
+      type: String,
+      enum: ["deploy", "openai", "custom"],
+      default: "deploy",
+    },
+    aiBaseUrl: {
+      type: String,
+      default: "https://api-cdn.deploy.com/api/v1",
+    },
+    aiModel: {
+      type: String,
+      default: "zai-org/glm-5.3-flash",
     },
     notificationPreferences: {
       inApp: { type: Boolean, default: true },
