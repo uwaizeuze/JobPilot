@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   Activity,
   Bell,
+  Bot,
   Briefcase,
   Calendar,
   ChevronLeft,
@@ -27,7 +28,7 @@ const NAV = [
   { href: "/resumes", label: "Resumes", icon: FileText },
   { href: "/interviews/prep", label: "Interviews", icon: Calendar },
   { href: "/notifications", label: "Notifications", icon: Bell },
-  { href: "/settings/agent", label: "AI Agent", icon: Sparkles },
+  { href: "/ai-agent", label: "AI Agent", icon: Bot },
   { href: "/settings/jobs", label: "Background Jobs", icon: Activity },
   { href: "/settings/profile", label: "Settings", icon: Settings },
   { href: "/settings/privacy", label: "Privacy & Data", icon: Shield },
